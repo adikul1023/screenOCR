@@ -64,22 +64,8 @@ modules:
         X-GNOME-Autostart-enabled=false
         DESKTOP
       
-      # Create icon (embed a simple PNG)
-      - |
-        python3 << 'ICON'
-        import struct
-        # Create a simple 256x256 blue PNG with white "OCR" text (minimal PNG)
-        # For minimum overhead, using a small valid PNG
-        with open('/app/share/icons/hicolor/256x256/apps/com.github.adikul1023.screenocr.png', 'wb') as f:
-            # Minimal valid 1x1 PNG (transparent)
-            png_bytes = bytes.fromhex(
-                '89504e470d0a1a0a0000000d494844520000000100000001'
-                '0806000000001f15c4890000000a49444154789c6300010000'
-                '050001000d0a13f5000000004945'
-                '4e44ae426082'
-            )
-            f.write(png_bytes)
-        ICON
+      # Create icon (use existing PNG)
+      - cp screencapture.png /app/share/icons/hicolor/256x256/apps/com.github.adikul1023.screenocr.png
     
     sources:
       - type: dir
