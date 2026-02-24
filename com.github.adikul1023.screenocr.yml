@@ -6,6 +6,9 @@ sdk: org.freedesktop.Sdk
 command: screenocr
 
 finish-args:
+  # Network access for auto-installing dependencies
+  - --share=network
+  
   # Display
   - --socket=wayland
   - --socket=x11
@@ -29,14 +32,6 @@ finish-args:
   - --env=HOME=/home/user
 
 modules:
-  - name: python-deps
-    buildsystem: simple
-    build-commands:
-      # Install pip in the Flatpak
-      - python3 -m ensurepip --default-pip
-      # Install all dependencies
-      - python3 -m pip install --prefix=/app --no-warn-script-location PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard
-
   - name: screenocr
     buildsystem: simple
     build-commands:
@@ -51,7 +46,13 @@ modules:
         #!/bin/bash
         export PYTHONPATH=/app/lib/screenocr:$PYTHONPATH
         
-        # Run with proper environment
+        # Ensure pip is available for our auto-setup system
+        if ! python3 -m pip --version &>/dev/null; then
+            echo "[Flatpak] Installing pip..."
+            python3 -m ensurepip --user --default-pip 2>/dev/null || true
+        fi
+        
+        # Run with proper environment (setup_environment.py will auto-install deps)
         exec python3 /app/lib/screenocr/main.py "$@"
         LAUNCHER
         chmod +x /app/bin/screenocr
