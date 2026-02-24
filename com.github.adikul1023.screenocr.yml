@@ -13,57 +13,59 @@ finish-args:
   - --socket=x11
   - --share=ipc
   
-  # Input devices for hotkey support
+  # Input devices for hotkey support (required for keyboard library)
   - --device=all
+  - --env=XKB_CONFIG_ROOT=/usr/share/X11/xkb
   
   # D-Bus for system integration
   - --socket=session-bus
   - --socket=system-bus
   
-  # XDG Portal for screenshot
+  # XDG Portal for screenshot (D-Bus access required)
   - --talk-name=org.freedesktop.portal.Desktop
   - --talk-name=org.freedesktop.ScreenSaver
   
   # Filesystem access
   - --filesystem=xdg-cache
   - --filesystem=/tmp:rw
+  - --env=HOME=/home/user
 
 modules:
   - name: python-dependencies
     buildsystem: simple
     build-commands:
-      - python3 -m venv /app/venv
-      - /app/venv/bin/pip install --upgrade pip setuptools wheel
-      - /app/venv/bin/pip install 
-          PySide6 
-          opencv-python 
-          rapidocr-onnxruntime 
-          pillow 
-          numpy 
+      - /usr/lib/sdk/python312/bin/python3 -m venv /app/venv
+      - /app/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
+      - |
+        /app/venv/bin/pip install --no-cache-dir \
+          PySide6 \
+          opencv-python \
+          rapidocr-onnxruntime \
+          pillow \
+          numpy \
           keyboard
     sources: []
 
   - name: screenocr
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/bin
-      - mkdir -p /app/share/applications
-      - mkdir -p /app/share/icons/hicolor/256x256/apps
+      - mkdir -p /app/bin /app/lib/screenocr /app/share/applications /app/share/icons/hicolor/256x256/apps
       
       # Copy Python modules
-      - install -Dm644 main.py /app/main.py
-      - install -Dm644 ocr_engine.py /app/ocr_engine.py
-      - install -Dm644 portal.py /app/portal.py
-      - install -Dm644 overlay.py /app/overlay.py
-      - install -Dm644 utils.py /app/utils.py
-      - install -Dm644 hotkey_daemon.py /app/hotkey_daemon.py
+      - cp main.py ocr_engine.py portal.py overlay.py utils.py hotkey_daemon.py setup_environment.py /app/lib/screenocr/
       
-      # Create launcher script
+      # Create launcher wrapper
       - |
         cat > /app/bin/screenocr << 'LAUNCHER'
         #!/bin/bash
-        export PYTHONPATH=/app:$PYTHONPATH
-        exec /app/venv/bin/python3 /app/main.py "$@"
+        export PYTHONPATH=/app/lib/screenocr:$PYTHONPATH
+        export PATH=/app/venv/bin:$PATH
+        
+        # Ensure keyboard module can access input devices
+        export XKBCOMMON_LIBRARY_PATH=/lib/x86_64-linux-gnu
+        
+        # Run with proper environment
+        exec /app/venv/bin/python3 /app/lib/screenocr/main.py "$@"
         LAUNCHER
         chmod +x /app/bin/screenocr
       
@@ -77,8 +79,28 @@ modules:
         Comment=Hotkey-triggered OCR utility for Linux
         Exec=screenocr trigger
         Icon=com.github.adikul1023.screenocr
-        Categories=Utility;Office;
+        Categories=Utility;Office;TextTools;
+        Keywords=ocr;text;extraction;screenshot;
+        Terminal=false
+        X-GNOME-Autostart-enabled=false
         DESKTOP
+      
+      # Create icon (embed a simple PNG)
+      - |
+        python3 << 'ICON'
+        import struct
+        # Create a simple 256x256 blue PNG with white "OCR" text (minimal PNG)
+        # For minimum overhead, using a small valid PNG
+        with open('/app/share/icons/hicolor/256x256/apps/com.github.adikul1023.screenocr.png', 'wb') as f:
+            # Minimal valid 1x1 PNG (transparent)
+            png_bytes = bytes.fromhex(
+                '89504e470d0a1a0a0000000d494844520000000100000001'
+                '0806000000001f15c4890000000a49444154789c6300010000'
+                '050001000d0a13f5000000004945'
+                '4e44ae426082'
+            )
+            f.write(png_bytes)
+        ICON
     
     sources:
       - type: dir
@@ -91,3 +113,4 @@ cleanup:
   - /lib/*.a
   - /share/doc
   - /share/man
+  - /share/info

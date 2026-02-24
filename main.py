@@ -9,14 +9,51 @@ from typing import Optional, Tuple
 from threading import Thread
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer
-from PySide6.QtGui import QKeySequence, QGuiApplication
+# Auto-setup dependencies before importing
+def _setup_dependencies():
+    """Auto-setup missing dependencies on first run."""
+    try:
+        from setup_environment import ensure_dependencies
+        ensure_dependencies()
+    except ImportError:
+        # setup_environment not available, try manual import
+        missing = []
+        for pkg in ['PySide6', 'opencv-python', 'rapidocr-onnxruntime', 'pillow', 'numpy', 'keyboard']:
+            try:
+                __import__(pkg.replace('-', '_'))
+            except ImportError:
+                missing.append(pkg)
+        
+        if missing:
+            print("ERROR: Missing Python packages:")
+            for pkg in missing:
+                print(f"  - {pkg}")
+            print("\nInstalling automatically...")
+            import subprocess
+            for pkg in missing:
+                subprocess.run([sys.executable, '-m', 'pip', 'install', pkg, '-q'])
+    except Exception as e:
+        print(f"Warning: Setup error: {e}")
 
-from overlay import SelectionOverlay
-from portal import PortalScreenshot
-from ocr_engine import OCREngine
-from utils import clean_ocr_text
+_setup_dependencies()
+
+try:
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer
+    from PySide6.QtGui import QKeySequence, QGuiApplication
+except ImportError as e:
+    print(f"ERROR: Cannot import PySide6: {e}")
+    print("This is a required dependency. Installation may have failed.")
+    sys.exit(1)
+
+try:
+    from overlay import SelectionOverlay
+    from portal import PortalScreenshot
+    from ocr_engine import OCREngine
+    from utils import clean_ocr_text
+except ImportError as e:
+    print(f"ERROR: Cannot import ScreenOCR modules: {e}")
+    sys.exit(1)
 
 
 def cli_main() -> int:
