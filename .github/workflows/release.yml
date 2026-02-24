@@ -69,6 +69,8 @@ jobs:
 
   flatpak:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     container:
       image: bilelmoussaoui/flatpak-github-actions:latest
       options: --privileged
