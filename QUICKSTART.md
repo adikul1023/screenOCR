@@ -1,150 +1,146 @@
 # 🚀 ScreenOCR - Quick Start
 
-## The Fastest Way to Get Started
-
-### For Most Users: Download AppImage (Recommended ✅)
+## The Easiest Way: AppImage (Just Works!)
 
 ```bash
-# 1. Download (choose one)
-wget https://github.com/adikul1023/screenOCR/releases/download/v0.2.0/ScreenOCR-0.2.0-x86_64.AppImage
+# 1. Download
+wget https://github.com/adikul1023/screenOCR/releases/download/v0.2.0/ScreenOCR.AppImage
 
 # 2. Make executable
-chmod +x ScreenOCR-0.2.0-x86_64.AppImage
+chmod +x ScreenOCR.AppImage
 
-# 3. Run it!
-./ScreenOCR-0.2.0-x86_64.AppImage daemon start
+# 3. Run!
+./ScreenOCR.AppImage trigger
 ```
 
-**Done!** Press `Super+Shift+T` (Windows key + Shift + T) to extract text from any screen region.
+**That's it!** No manual setup needed. The AppImage automatically:
+- ✅ Checks for Python packages
+- ✅ Installs missing dependencies
+- ✅ Checks system requirements
+- ✅ Handles everything automatically
 
 ---
 
-## Alternative Installation Methods
+## Set Up Global Hotkey (Optional)
 
-### Ubuntu/Fedora: Snap (Auto-Updates ✨)
+Get OCR with a single keystroke anywhere on your desktop:
 
-```bash
-snap install screenocr
-screenocr daemon start
-```
+### KDE Plasma (Recommended)
 
-### Any Linux: Flatpak (Modern 🔐)
+1. Open **System Settings** → **Shortcuts** → **Custom Shortcuts**
+2. Click **Edit** → **New** → **Global Shortcut** → **Command/URL**
+3. **Trigger tab:** Set to `Super+Shift+T` (or your preference)
+4. **Action tab:** Enter:
+   ```
+   /path/to/ScreenOCR.AppImage trigger
+   ```
+5. Click **Apply**
 
-```bash
-flatpak install flathub com.github.adikul1023.screenocr
-flatpak run com.github.adikul1023.screenocr daemon start
-```
+### GNOME
 
-### From Source (Development 🛠️)
+1. Open **Settings** → **Keyboard** → **Custom Shortcuts**
+2. Create a new shortcut:
+   - **Name:** ScreenOCR
+   - **Command:** `/path/to/ScreenOCR.AppImage trigger`
+3. Press desired key combination
 
-```bash
-git clone https://github.com/adikul1023/screenOCR.git
-cd screenOCR
-pip install -e .
-screenocr daemon start
-```
+See [HOTKEY-SETUP.md](HOTKEY-SETUP.md) for XFCE, i3, Sway, and others.
 
 ---
 
 ## Usage
 
-Once running, press your hotkey:
+### Method 1: Hotkey (After Setup)
+Press **Super+Shift+T** anywhere, then:
+1. Drag to select region
+2. Release to extract text
+3. ✓ Text auto-copied to clipboard
 
-- **Super+Shift+T** (Default) - Select region, extract text
-- **Text auto-copies to clipboard** ✓
-
-Change hotkey:
+### Method 2: Manual Trigger
 ```bash
-./ScreenOCR-0.2.0-x86_64.AppImage daemon start 'ctrl+shift+c'
+./ScreenOCR.AppImage trigger
 ```
 
-Stop daemon:
+Same process as hotkey.
+
+---
+
+## Alternative Distributions
+
+### Flatpak (When Available)
+
 ```bash
-./ScreenOCR-0.2.0-x86_64.AppImage daemon stop
-./ScreenOCR-0.2.0-x86_64.AppImage daemon status
+# Install
+flatpak install screenocr.flatpak
+
+# Run  
+flatpak run com.github.adikul1023.screenocr trigger
 ```
 
----
+Flatpak handles all dependencies automatically too!
 
-## Need Help?
+### From Source (Developers)
 
-- 📖 Full docs: [README.md](README.md)
-- 🐛 Issues: [GitHub Issues](https://github.com/adikul1023/screenOCR/issues)
-- 📦 Packaging: [PACKAGING.md](PACKAGING.md)
-
----
-
-## System Requirements
-
-- Linux with Wayland ✓
-- One of: `spectacle`, `gnome-screenshot`, `flameshot`
-- `wl-copy` (optional, for clipboard)
-
-Install missing tools:
 ```bash
-# Debian/Ubuntu
-sudo apt install spectacle wl-clipboard
-
-# Fedora
-sudo dnf install spectacle wl-clipboard
-
-# Arch
-sudo pacman -S spectacle wl-clipboard
+git clone https://github.com/adikul1023/screenOCR.git
+cd screenOCR
+pip install -r requirements.txt
+python main.py trigger
 ```
-
----
-
-## Features
-
-- ⚡ Fast (1-2 second response)
-- 🌊 Wayland-native
-- 🔥 Global hotkey + daemon
-- 📋 Smart clipboard
-- 🐍 Python-aware syntax
-
----
-
-## What It Does
-
-1. Press Super+Shift+T
-2. Select region with mouse
-3. Text extracted and copied to clipboard
-4. Paste anywhere!
-
-Perfect for:
-- Code snippets
-- Documentation
-- Text in images
-- Terminal output
-- Presentations
 
 ---
 
 ## Troubleshooting
 
-### Hotkey not working?
+### "Python 3 not found"
 
-**If you see permission errors, use sudo:**
+Get Python 3:
 ```bash
-sudo ./ScreenOCR-*.AppImage daemon start
+# Ubuntu/Debian
+sudo apt install python3
+
+# Fedora
+sudo dnf install python3
+
+# Arch
+sudo pacman -S python
 ```
 
-### Screenshot tool missing?
+### Dependencies not installing?
 
-Install spectacle or gnome-screenshot:
+The AppImage tries to auto-install. If it fails, install manually:
 ```bash
-sudo apt install spectacle
+pip install PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard
 ```
 
-### No text extracted?
+### Still not working?
 
-Try a different region with more contrast, or check logs:
+Open an [issue](https://github.com/adikul1023/screenOCR/issues) with:
 ```bash
-./ScreenOCR-*.AppImage daemon status
+./ScreenOCR.AppImage trigger --help
 ```
+
+---
+
+## What It Does
+
+1. Press hotkey / run AppImage
+2. Select region on screen
+3. OCR text extracted instantly
+4. Text in clipboard, ready to paste!
+
+**Perfect for:**
+- 📝 Code snippets
+- 📖 Documentation
+- 🖼️ Screenshots
+- 📺 Terminal output
+- 🎬 Presentations
 
 ---
 
 ## Questions?
 
-See [README.md](README.md) or open an [issue](https://github.com/adikul1023/screenOCR/issues).
+- 📚 [README.md](README.md) - Full documentation
+- ⌨️ [HOTKEY-SETUP.md](HOTKEY-SETUP.md) - Hotkey configuration
+- 📦 [PACKAGING.md](PACKAGING.md) - Build & distribution
+- 🐛 [Issues](https://github.com/adikul1023/screenOCR/issues)
