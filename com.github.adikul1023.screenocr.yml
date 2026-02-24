@@ -29,20 +29,6 @@ finish-args:
   - --env=HOME=/home/user
 
 modules:
-  - name: python-dependencies
-    buildsystem: simple
-    build-commands:
-      - python3 -m venv /app/venv
-      - |
-        /app/venv/bin/pip install --no-cache-dir \
-          PySide6 \
-          opencv-python \
-          rapidocr-onnxruntime \
-          pillow \
-          numpy \
-          keyboard
-    sources: []
-
   - name: screenocr
     buildsystem: simple
     build-commands:
@@ -56,13 +42,9 @@ modules:
         cat > /app/bin/screenocr << 'LAUNCHER'
         #!/bin/bash
         export PYTHONPATH=/app/lib/screenocr:$PYTHONPATH
-        export PATH=/app/venv/bin:$PATH
-        
-        # Ensure keyboard module can access input devices
-        export XKBCOMMON_LIBRARY_PATH=/lib/x86_64-linux-gnu
         
         # Run with proper environment
-        exec /app/venv/bin/python3 /app/lib/screenocr/main.py "$@"
+        exec python3 /app/lib/screenocr/main.py "$@"
         LAUNCHER
         chmod +x /app/bin/screenocr
       
