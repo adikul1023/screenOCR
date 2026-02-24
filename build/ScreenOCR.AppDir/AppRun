@@ -1,0 +1,32 @@
+#!/bin/bash
+# AppRun for ScreenOCR
+
+APPDIR="$(dirname "$(readlink -f "${0}")")"
+
+# Find Python 3
+PYTHON=""
+for py in python3.13 python3.12 python3.11 python3.10 python3; do
+    if command -v "$py" &> /dev/null; then
+        PYTHON="$py"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "Error: Python 3 not found!"
+    exit 1
+fi
+
+# Check dependencies
+if ! $PYTHON -c "import PySide6" 2>/dev/null; then
+    echo "Error: PySide6 not installed!"
+    echo "Install with: pip install PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard"
+    exit 1
+fi
+
+# Add AppDir to Python path
+export PYTHONPATH="${APPDIR}:${PYTHONPATH}"
+
+# Run the application
+cd "${APPDIR}"
+exec $PYTHON "${APPDIR}/main.py" "$@"

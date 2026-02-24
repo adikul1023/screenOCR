@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ScreenOCR
+Comment=Fast hotkey-triggered OCR for Linux
+Exec=screenocr %F
+Icon=screencapture
+Categories=Utility;Office;
+Keywords=ocr;screenshot;hotkey;text;extraction;
+Terminal=false
+StartupNotify=true
+StartupWMClass=ScreenOCR
