@@ -46,7 +46,6 @@ apps:
 parts:
   screenocr:
     plugin: python
-    python-version: python3.10
     python-packages:
       - pip
       - setuptools

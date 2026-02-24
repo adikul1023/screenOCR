@@ -50,37 +50,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  snap:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Snap
-      uses: snapcore/action-build@v1
-      id: snapcraft
-    
-    - name: Upload to Snap Store
-      env:
-        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
-      run: |
-        snapcraft upload ${{ steps.snapcraft.outputs.snap }} --release=stable
-
-  flatpak:
-    runs-on: ubuntu-latest
-    container:
-      image: bilelmoussaoui/flatpak-github-actions:latest
-      options: --privileged
-
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Flatpak
-      uses: flathub/flatpak-github-actions/flatpak-builder-action@v6
-      with:
-        bundle: com.github.adikul1023.screenocr.flatpak
-        manifest-path: com.github.adikul1023.screenocr.yml
-        cache: false
-        verbose: true
+  # Snap and Flatpak builds disabled - build manually
+  # snap:
+  #   runs-on: ubuntu-latest
+  #   See PACKAGING.md for manual build instructions
