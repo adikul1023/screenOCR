@@ -29,6 +29,14 @@ finish-args:
   - --env=HOME=/home/user
 
 modules:
+  - name: python-deps
+    buildsystem: simple
+    build-commands:
+      # Install pip in the Flatpak
+      - python3 -m ensurepip --default-pip
+      # Install all dependencies
+      - python3 -m pip install --prefix=/app --no-warn-script-location PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard
+
   - name: screenocr
     buildsystem: simple
     build-commands:
