@@ -1,0 +1,80 @@
+app-id: com.github.adikul1023.screenocr
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.python311
+
+command: screenocr
+
+finish-args:
+  # Wayland display
+  - --socket=wayland
+  - --socket=x11
+  
+  # Input device for hotkey support
+  - --device=all
+  - --share=ipc
+  
+  # Settings access
+  - --access=settings
+  
+  # D-Bus session
+  - --socket=system-bus
+  - --socket=session-bus
+  
+  # For XDG Portal screenshot
+  - --talk-name=org.freedesktop.portal.Desktop
+  - --talk-name=org.freedesktop.ScreenSaver
+  
+  # Allow filesystem access for screenshots
+  - --filesystem=xdg-cache
+  - --filesystem=/tmp:rw
+
+modules:
+  - name: python-dependencies
+    buildsystem: simple
+    build-commands:
+      - python3 -m venv /app/venv
+      - /app/venv/bin/pip install --upgrade pip setuptools wheel
+      - /app/venv/bin/pip install PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard
+    sources: []
+
+  - name: screenocr
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/bin
+      - mkdir -p /app/share/applications
+      - mkdir -p /app/share/icons
+      
+      # Copy Python modules
+      - cp main.py /app/
+      - cp ocr_engine.py /app/
+      - cp portal.py /app/
+      - cp overlay.py /app/
+      - cp utils.py /app/
+      - cp hotkey_daemon.py /app/
+      
+      # Create wrapper script
+      - |
+        cat > /app/bin/screenocr << 'WRAPPER'
+        #!/bin/bash
+        export PYTHONPATH=/app:/app/venv/lib/python3.11/site-packages
+        exec /app/venv/bin/python3 /app/main.py "$@"
+        WRAPPER
+      - chmod +x /app/bin/screenocr
+      
+      # Copy desktop file
+      - cp screenocr.desktop /app/share/applications/
+      
+    sources:
+      - type: dir
+        path: .
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/*.la
+  - /lib/*.a
+  - /share/doc
+  - /share/man

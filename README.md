@@ -12,187 +12,214 @@ A fast, lightweight OCR utility for Linux with global hotkey support. Press **Su
 - 🎨 **Image Preprocessing** - Denoising, contrast enhancement, upscaling
 - ⚙️ **Configurable** - Customize hotkey and behavior
 
+## Quick Install
+
+### Option 1: AppImage (Easiest - Works Everywhere)
+
+```bash
+# Download the latest AppImage
+wget https://github.com/adikul1023/screenOCR/releases/download/latest/ScreenOCR-0.2.0-x86_64.AppImage
+
+# Make executable
+chmod +x ScreenOCR-0.2.0-x86_64.AppImage
+
+# Start the daemon
+./ScreenOCR-0.2.0-x86_64.AppImage daemon start
+
+# Or with custom hotkey
+./ScreenOCR-0.2.0-x86_64.AppImage daemon start 'alt+shift+o'
+```
+
+### Option 2: Snap (Ubuntu & Fedora)
+
+```bash
+snap install screenocr
+screenocr daemon start
+```
+
+### Option 3: Flatpak (All Linux Distros)
+
+```bash
+flatpak install flathub com.github.adikul1023.screenocr
+flatpak run com.github.adikul1023.screenocr daemon start
+```
+
 ## Requirements
 
 - Linux with Wayland support
-- Python 3.10+
 - One of: `spectacle`, `gnome-screenshot`, `flameshot`, `scrot`
 - `wl-copy` (for clipboard, optional - falls back to Qt)
-- Root access or configured udev rules (for global hotkey)
+- Root access or udev rules (for global hotkey daemon)
 
-## Installation
+## Installation (From Source)
 
-### 1. Clone and Setup
+## Installation (From Source)
+
+### 1. Clone Repository
 
 ```bash
-cd ~/Documents/OCR  # or your preferred location
-python -m venv venv
-source venv/bin/activate
-pip install -e .
+git clone https://github.com/adikul1023/screenOCR.git
+cd screenOCR
 ```
 
-### 2. Install System Dependencies
+### 2. Install Dependencies (Optional)
 
-**Fedora/RHEL:**
 ```bash
-sudo dnf install spectacle wl-clipboard
-```
+# Debian/Ubuntu
+sudo apt install spectacle wl-clipboard python3-venv
 
-**Ubuntu/Debian:**
-```bash
-sudo apt install spectacle wl-clipboard
-```
+# Fedora
+sudo dnf install spectacle wl-clipboard python3-venv
 
-**Arch:**
-```bash
+# Arch
 sudo pacman -S spectacle wl-clipboard
 ```
 
-### 3. Setup Hotkey Daemon
+### 3. Install Python Package
 
-The keyboard library requires elevated privileges. Choose one:
-
-#### Option A: Run with sudo (Easiest)
 ```bash
-sudo ~/.local/bin/screenocr daemon start
-# Or with modified hotkey:
-sudo ~/.local/bin/screenocr daemon start 'ctrl+shift+c'
+pip install -e .
 ```
 
-#### Option B: Configure udev Rules (Advanced, one-time)
+That's it! Now run:
+
 ```bash
-sudo groupadd uinput
-sudo usermod -a -G uinput $USER
-sudo echo 'SUBSYSTEM=="uinput", GROUP="uinput", MODE="0660"' | sudo tee /etc/udev/rules.d/99-uinput.rules
-sudo udevadm control --reload
-# Log out and log back in
-```
-
-Then run without sudo:
-```bash
-~/.local/bin/screenocr daemon start
-```
-
-#### Option C: Autostart via systemd (Linux)
-
-Copy systemd service:
-```bash
-mkdir -p ~/.config/systemd/user
-cp screenocr-daemon.service ~/.config/systemd/user/
-
-# Edit to use sudo if needed
-systemctl --user enable screenocr-daemon
-systemctl --user start screenocr-daemon
+screenocr daemon start
 ```
 
 ## Usage
 
-### Start the Daemon
-```bash
-# With sudo
-sudo screenocr daemon start
+### Start Daemon (Global Hotkey)
 
-# Or with custom hotkey
-sudo screenocr daemon start 'alt+shift+o'
+```bash
+screenocr daemon start
 ```
 
-### Stop the Daemon
+Then press **Super+Shift+T** to trigger OCR.
+
+### Custom Hotkey
+
 ```bash
-screenocr daemon stop
+screenocr daemon start 'ctrl+shift+c'
+screenocr daemon start 'alt+shift+o'
+screenocr daemon start 'super+alt+x'
 ```
 
-### Check Status
-```bash
-screenocr daemon status
-```
+### Manual Trigger (No Daemon)
 
-### Manual Trigger (Testing)
 ```bash
 screenocr trigger
 ```
 
-### View Logs (systemd)
+### Control Daemon
+
+```bash
+screenocr daemon status    # Check if running
+screenocr daemon stop      # Stop daemon
+```
+
+### Auto-Start on Login (Optional)
+
+Using systemd:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp screenocr-daemon.service ~/.config/systemd/user/
+systemctl --user enable screenocr-daemon
+systemctl --user start screenocr-daemon
+```
+
+View logs:
+
 ```bash
 journalctl --user -u screenocr-daemon -f
 ```
 
-## Supported Hotkeys
-
-Common hotkey combinations:
-- `super+shift+t` - Windows/Super key + Shift + T (default)
-- `ctrl+shift+c` - Control + Shift + C
-- `alt+shift+o` - Alt + Shift + O
-- `ctrl+alt+o` - Control + Alt + O
-
-Format: Use `+` to separate keys, lowercase letters, and key names like `super`, `ctrl`, `alt`, `shift`.
-
-## Configuration
-
-Configuration is saved in `~/.config/screenocr/config.json`:
-```json
-{
-  "hotkey": "super+shift+t",
-  "version": "1.0",
-  "launched": 1234567890
-}
-```
-
 ## Troubleshooting
 
-### Hotkey not working
-1. Check daemon is running: `screenocr daemon status`
-2. Check permissions: Daemon needs keyboard input access
-3. Some display managers may intercept hotkeys - try a different combination
+### Hotkey not working?
 
-### Screenshot not working
-- Ensure one of: `spectacle`, `gnome-screenshot`, `flameshot`, `scrot` is installed
-- On Wayland: `spectacle` is preferred
+**Error:** `Permission denied` or module errors
 
-### Clipboard not working
-- `wl-copy` not installed: `sudo apt install wl-clipboard`
-- Falls back to Qt clipboard automatically
+**Solution:** Run with sudo
+```bash
+sudo screenocr daemon start
+```
 
-### Module not found errors
-- Reinstall: `pip install -e --force-reinstall .`
-- Check Python path: `which python` should match venv
+Or configure udev rules (see PACKAGING.md)
+
+### Screenshot tool not found?
+
+**Error:** `spectacle not found`
+
+**Solution:** Install a screenshot tool
+```bash
+sudo apt install spectacle  # or gnome-screenshot, flameshot
+```
+
+### Clipboard not working?
+
+**Error:** Text not copying
+
+**Solution:** Install wl-copy (optional, falls back to Qt)
+```bash
+sudo apt install wl-clipboard
+```
 
 ## Performance
 
-- Startup time: ~1-2 seconds (RapidOCR)
-- OCR processing: ~0.5-1 second
-- Total latency: ~2-3 seconds from hotkey press to clipboard ready
+- **Startup:** ~1-2 seconds
+- **OCR:** ~0.5-1 second
+- **Total latency:** ~2-3 seconds from hotkey press
+
+## Distribution Formats
+
+See [PACKAGING.md](PACKAGING.md) for details on:
+- **AppImage** - Single file, works everywhere
+- **Snap** - Ubuntu/Fedora snapcraft
+- **Flatpak** - Modern Linux standard
+- **Traditional packages** - .deb, .rpm, AUR
 
 ## Architecture
 
 ```
-hotkey_daemon.py    ← Listens for global hotkeys (runs as daemon)
-    ↓
-main.py             ← Launches GUI when triggered
-    ↓
-overlay.py          ← Shows selection rectangle overlay
-    ↓
-portal.py           ← Captures screenshot via XDG Portal (Wayland-safe)
-    ↓
-ocr_engine.py       ← Processes image with RapidOCR
-    ↓
-clipboard           ← Copies result (wl-copy or Qt)
+hotkey_daemon.py   → Global hotkey listener
+        ↓
+main.py            → Launches GUI on hotkey
+        ↓
+overlay.py         → Region selection overlay
+        ↓
+portal.py          → XDG Portal screenshot (Wayland-safe)
+        ↓
+ocr_engine.py      → RapidOCR processing
+        ↓
+Clipboard          → Auto-copy result
 ```
 
 ## Development
 
-### Run tests
 ```bash
+# Run tests
 python test_ocr.py
-```
 
-### Manual trigger
-```bash
+# Manual trigger
 python main.py trigger
+
+# Check daemon
+python main.py daemon status
 ```
 
-### Check imports
+## Building Packages
+
+See [PACKAGING.md](PACKAGING.md) for:
+- Building AppImage
+- Building Snap
+- Building Flatpak
+- GitHub Actions CI/CD setup
+
+Quick build:
 ```bash
-python -c "from ocr_engine import OCREngine; print('✓ OCR working')"
+bash build-appimage.sh
 ```
 
 ## License
@@ -201,12 +228,13 @@ MIT - See LICENSE file
 
 ## Credits
 
-- RapidOCR - Fast OCR engine
-- PySide6 - Qt bindings for Python
-- keyboard - Global hotkey library
-- XDG Desktop Portal - Wayland screenshot support
+- **RapidOCR** - OCR engine
+- **PySide6** - Qt bindings
+- **keyboard** - Hotkey support
+- **XDG Portal** - Wayland screenshot
 
 ## Links
 
-- GitHub: https://github.com/adikul1023/screenOCR
-- Issues: https://github.com/adikul1023/screenOCR/issues
+- **GitHub:** https://github.com/adikul1023/screenOCR
+- **Issues:** https://github.com/adikul1023/screenOCR/issues
+- **Releases:** https://github.com/adikul1023/screenOCR/releases
