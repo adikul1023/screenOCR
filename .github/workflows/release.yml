@@ -52,11 +52,7 @@ jobs:
         APPRUN
         chmod +x build/ScreenOCR.AppDir/AppRun
         
-        # Create icon
-        convert -size 256x256 xc:blue -fill white -pointsize 72 -gravity center \
-          -annotate +0+0 "OCR" build/ScreenOCR.AppDir/screencapture.png
-        
-        # Build AppImage
+        # Build AppImage (using existing icon: screencapture.png)
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
         ARCH=x86_64 ./appimagetool-x86_64.AppImage --no-appstream build/ScreenOCR.AppDir ScreenOCR.AppImage
@@ -65,7 +61,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ScreenOCR-*.AppImage
+          ScreenOCR.AppImage
         draft: false
         prerelease: false
       env:
@@ -82,7 +78,7 @@ jobs:
     
     - name: Build Flatpak
       run: |
-        flatpak-builder --force-clean build-flatpak \
+        flatpak-builder --force-clean --install-deps build-flatpak \
           com.github.adikul1023.screenocr.yml \
           --repo=repo
     
