@@ -80,6 +80,7 @@ jobs:
       run: |
         flatpak install --noninteractive --assumeyes flathub org.freedesktop.Platform//24.08
         flatpak install --noninteractive --assumeyes flathub org.freedesktop.Sdk//24.08
+        flatpak install --noninteractive --assumeyes flathub org.freedesktop.Sdk.Extension.python312//24.08
     
     - name: Build Flatpak
       run: |
