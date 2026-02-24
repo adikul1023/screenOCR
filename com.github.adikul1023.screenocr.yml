@@ -3,7 +3,7 @@ runtime: org.freedesktop.Platform
 runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.python312
+  - org.freedesktop.Sdk.Extension.python311
 
 command: screenocr
 
@@ -34,7 +34,7 @@ modules:
   - name: python-dependencies
     buildsystem: simple
     build-commands:
-      - /usr/lib/sdk/python312/bin/python3 -m venv /app/venv
+      - /usr/lib/sdk/python311/bin/python3 -m venv /app/venv
       - /app/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
       - |
         /app/venv/bin/pip install --no-cache-dir \
