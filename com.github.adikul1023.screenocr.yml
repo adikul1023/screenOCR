@@ -1,33 +1,30 @@
 app-id: com.github.adikul1023.screenocr
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.python311
+  - org.freedesktop.Sdk.Extension.python312
 
 command: screenocr
 
 finish-args:
-  # Wayland display
+  # Display
   - --socket=wayland
   - --socket=x11
-  
-  # Input device for hotkey support
-  - --device=all
   - --share=ipc
   
-  # Settings access
-  - --access=settings
+  # Input devices for hotkey support
+  - --device=all
   
-  # D-Bus session
-  - --socket=system-bus
+  # D-Bus for system integration
   - --socket=session-bus
+  - --socket=system-bus
   
-  # For XDG Portal screenshot
+  # XDG Portal for screenshot
   - --talk-name=org.freedesktop.portal.Desktop
   - --talk-name=org.freedesktop.ScreenSaver
   
-  # Allow filesystem access for screenshots
+  # Filesystem access
   - --filesystem=xdg-cache
   - --filesystem=/tmp:rw
 
@@ -37,7 +34,13 @@ modules:
     build-commands:
       - python3 -m venv /app/venv
       - /app/venv/bin/pip install --upgrade pip setuptools wheel
-      - /app/venv/bin/pip install PySide6 opencv-python rapidocr-onnxruntime pillow numpy keyboard
+      - /app/venv/bin/pip install 
+          PySide6 
+          opencv-python 
+          rapidocr-onnxruntime 
+          pillow 
+          numpy 
+          keyboard
     sources: []
 
   - name: screenocr
@@ -45,28 +48,38 @@ modules:
     build-commands:
       - mkdir -p /app/bin
       - mkdir -p /app/share/applications
-      - mkdir -p /app/share/icons
+      - mkdir -p /app/share/icons/hicolor/256x256/apps
       
       # Copy Python modules
-      - cp main.py /app/
-      - cp ocr_engine.py /app/
-      - cp portal.py /app/
-      - cp overlay.py /app/
-      - cp utils.py /app/
-      - cp hotkey_daemon.py /app/
+      - install -Dm644 main.py /app/main.py
+      - install -Dm644 ocr_engine.py /app/ocr_engine.py
+      - install -Dm644 portal.py /app/portal.py
+      - install -Dm644 overlay.py /app/overlay.py
+      - install -Dm644 utils.py /app/utils.py
+      - install -Dm644 hotkey_daemon.py /app/hotkey_daemon.py
       
-      # Create wrapper script
+      # Create launcher script
       - |
-        cat > /app/bin/screenocr << 'WRAPPER'
+        cat > /app/bin/screenocr << 'LAUNCHER'
         #!/bin/bash
-        export PYTHONPATH=/app:/app/venv/lib/python3.11/site-packages
+        export PYTHONPATH=/app:$PYTHONPATH
         exec /app/venv/bin/python3 /app/main.py "$@"
-        WRAPPER
-      - chmod +x /app/bin/screenocr
+        LAUNCHER
+        chmod +x /app/bin/screenocr
       
-      # Copy desktop file
-      - cp screenocr.desktop /app/share/applications/
-      
+      # Desktop entry
+      - |
+        cat > /app/share/applications/com.github.adikul1023.screenocr.desktop << 'DESKTOP'
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=ScreenOCR
+        Comment=Hotkey-triggered OCR utility for Linux
+        Exec=screenocr trigger
+        Icon=com.github.adikul1023.screenocr
+        Categories=Utility;Office;
+        DESKTOP
+    
     sources:
       - type: dir
         path: .

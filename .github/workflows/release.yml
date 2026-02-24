@@ -30,15 +30,36 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-dev libssl-dev libffi-dev libxkbcommon0
     
-    - name: Download appimagetool
-      run: |
-        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x appimagetool-x86_64.AppImage
-    
     - name: Build AppImage
       run: |
-        bash build-appimage.sh
-        ls -lh ScreenOCR-* || echo "Build needs review"
+        mkdir -p build/ScreenOCR.AppDir
+        cp main.py ocr_engine.py portal.py overlay.py utils.py hotkey_daemon.py build/ScreenOCR.AppDir/
+        cp screenocr.desktop build/ScreenOCR.AppDir/
+        
+        # Create AppRun
+        cat > build/ScreenOCR.AppDir/AppRun << 'APPRUN'
+        #!/bin/bash
+        APPDIR="$(dirname "$(readlink -f "${0}")")"
+        VENV_PYTHON="/home/ak/Documents/OCR/venv-sys/bin/python3"
+        if [ -f "$VENV_PYTHON" ]; then
+            PYTHON="$VENV_PYTHON"
+        else
+            PYTHON=$(which python3)
+        fi
+        export PYTHONPATH="${APPDIR}:${PYTHONPATH}"
+        cd "${APPDIR}"
+        exec $PYTHON "${APPDIR}/main.py" "$@"
+        APPRUN
+        chmod +x build/ScreenOCR.AppDir/AppRun
+        
+        # Create icon
+        convert -size 256x256 xc:blue -fill white -pointsize 72 -gravity center \
+          -annotate +0+0 "OCR" build/ScreenOCR.AppDir/screencapture.png
+        
+        # Build AppImage
+        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+        ARCH=x86_64 ./appimagetool-x86_64.AppImage --no-appstream build/ScreenOCR.AppDir ScreenOCR.AppImage
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -50,7 +71,32 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Snap and Flatpak builds disabled - build manually
-  # snap:
-  #   runs-on: ubuntu-latest
-  #   See PACKAGING.md for manual build instructions
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:latest
+      options: --privileged
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Flatpak
+      run: |
+        flatpak-builder --force-clean build-flatpak \
+          com.github.adikul1023.screenocr.yml \
+          --repo=repo
+    
+    - name: Bundle Flatpak
+      run: |
+        flatpak build-bundle repo screenocr.flatpak \
+          com.github.adikul1023.screenocr
+    
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          screenocr.flatpak
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
