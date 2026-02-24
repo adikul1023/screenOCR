@@ -19,6 +19,62 @@ from ocr_engine import OCREngine
 from utils import clean_ocr_text
 
 
+def cli_main() -> int:
+    """
+    CLI entry point for console_scripts.
+    Handles daemon and manual trigger commands.
+    
+    Returns:
+        Exit code
+    """
+    import hotkey_daemon
+    
+    if len(sys.argv) < 2 or sys.argv[1] in ('--help', '-h', 'help'):
+        print("ScreenOCR - Hotkey-triggered OCR utility")
+        print("\nUsage:")
+        print("  screenocr trigger          - Manually trigger OCR region selection")
+        print("  screenocr daemon start     - Start the hotkey listener daemon")
+        print("  screenocr daemon stop      - Stop the running daemon")
+        print("  screenocr daemon status    - Check daemon status")
+        print("\nHotkey: Super+Shift+T (customizable)")
+        print("\nExamples:")
+        print("  screenocr daemon start 'ctrl+shift+c'")
+        return 0
+    
+    command = sys.argv[1]
+    
+    if command == 'trigger':
+        # Direct trigger mode
+        return main_gui_trigger()
+    
+    elif command == 'daemon':
+        if len(sys.argv) < 3:
+            print("Usage: screenocr daemon [start|stop|status]")
+            return 1
+        
+        subcommand = sys.argv[2]
+        
+        if subcommand == 'start':
+            hotkey = sys.argv[3] if len(sys.argv) > 3 else None
+            return hotkey_daemon.daemon_start(hotkey=hotkey)
+        
+        elif subcommand == 'stop':
+            return hotkey_daemon.daemon_stop()
+        
+        elif subcommand == 'status':
+            return hotkey_daemon.daemon_status()
+        
+        else:
+            print(f"Unknown daemon command: {subcommand}")
+            return 1
+    
+    else:
+        print(f"Unknown command: {command}")
+        print("Use 'screenocr --help' for usage information")
+        return 1
+
+
+
 class OCRWorker(QObject):
     """
     Worker thread for OCR processing to avoid blocking UI.
@@ -325,25 +381,19 @@ class OcrApplication:
         Returns:
             Application exit code
         """
-        # For development/testing: show info and wait for trigger
-        # In production, this would register global hotkey and block until exit
-        
-        # Simplified entry point - would need system integration for true global hotkey
-        # Options for production:
-        # 1. Use KDE's org.kde.kglobalshortcuts D-Bus interface
-        # 2. Use GNOME's media keys via settings daemon
-        # 3. Integrate with systemd user session events
-        # 4. Use python-evdev directly (requires udev rules)
-        
-        # For now, provide command-line trigger or show usage
+        # Support old-style 'python main.py trigger' command for backwards compatibility
         if len(sys.argv) > 1 and sys.argv[1] == 'trigger':
             self.trigger_ocr()
             return self.app.exec()
         else:
+            # In daemon mode, would need to listen for hotkey.
+            # For GUI mode, show info
             self._show_info(
                 "OCR utility ready.\n\n"
-                "Global hotkey support requires system integration.\n\n"
-                "For testing, run: python main.py trigger"
+                "For daemon mode with global hotkeys:\n"
+                "  screenocr daemon start\n\n"
+                "For manual testing:\n"
+                "  screenocr trigger"
             )
             return 0
     
@@ -360,18 +410,30 @@ class OcrApplication:
             self.portal.cleanup()
 
 
-def main() -> int:
+def main_gui_trigger() -> int:
     """
-    Main entry point.
+    Main entry point for GUI trigger (hotkey daemon calls this).
     
     Returns:
         Exit code
     """
     app = OcrApplication()
     try:
-        return app.run()
+        app.trigger_ocr()
+        return app.app.exec()
     finally:
         app.cleanup()
+
+
+
+def main() -> int:
+    """
+    Main entry point for direct execution.
+    
+    Returns:
+        Exit code
+    """
+    return cli_main()
 
 
 if __name__ == '__main__':

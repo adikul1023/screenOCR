@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "screenocr"
+version = "0.2.0"
+description = "Fast hotkey-triggered OCR for Linux/Wayland"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "OCR Developer", email = "dev@screenocr.local"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+    "Topic :: Multimedia :: Graphics :: Capture",
+]
+
+dependencies = [
+    "PySide6>=6.8.0",
+    "opencv-python>=4.8.0",
+    "rapidocr-onnxruntime>=1.3.0",
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "keyboard>=0.13.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/adikul1023/screenOCR"
+Repository = "https://github.com/adikul1023/screenOCR.git"
+Issues = "https://github.com/adikul1023/screenOCR/issues"
+
+[project.scripts]
+screenocr = "main:cli_main"
+
+[tool.setuptools]
+py-modules = ["main", "ocr_engine", "portal", "overlay", "utils", "hotkey_daemon"]
