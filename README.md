@@ -166,6 +166,12 @@ sudo apt install spectacle  # or gnome-screenshot, flameshot
 sudo apt install wl-clipboard
 ```
 
+### OCR misses Python docstring quotes (`"""`)?
+
+**Error:** Triple quotes `"""` are sometimes dropped, misread as `1 11`, or misaligned.
+
+**Solution:** Because `"""` consists of very small, thin lines that look like noise, OCR engines often struggle to detect them on faint or low-contrast text (e.g. IDE grey/green syntax highlighting). To fix this, draw the selection box loosely with `slurp` to give the OCR engine enough context. We've added patches to autocorrect the most common misinterpretations of `"""`.
+
 ## Performance
 
 - **Startup:** ~1-2 seconds

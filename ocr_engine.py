@@ -84,31 +84,22 @@ class OCREngine:
         Returns:
             Preprocessed image array
         """
-        # Upscale for better character recognition
+        # Add padding to help OCR detect text at the very edges (for tight crops)
+        # Use the median pixel color of the image as the background fill, since text is the minority
+        bg_color = np.median(image, axis=(0, 1)).astype(int).tolist()
+        image = cv2.copyMakeBorder(image, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=bg_color)
+        
+        # Upscale (2.0x) to ensure faint grey docstrings 
+        # and thin punctuation are easily readable by the OCR engine.
         height, width = image.shape[:2]
-        scale = 2.0 if width < 600 else 1.5
+        scale = 2.0
         new_width = int(width * scale)
         new_height = int(height * scale)
         image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
         
-        # Slight denoise while preserving character edges
-        denoised = cv2.fastNlMeansDenoisingColored(
-            image, None, h=5, templateWindowSize=7, searchWindowSize=21
-        )
-        
-        # Convert to LAB for better contrast enhancement
-        lab = cv2.cvtColor(denoised, cv2.COLOR_BGR2LAB)
-        l_channel, a_channel, b_channel = cv2.split(lab)
-        
-        # Apply CLAHE to L channel only (brightness)
-        clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
-        l_enhanced = clahe.apply(l_channel)
-        
-        # Merge back
-        lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
-        enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
-        
-        return enhanced
+        # Return the upscaled image directly
+        # Aggressive denoising or contrast adjustments often blur small punctuation like """ or :
+        return image
     
     def _rapidocr_extract(self, image: np.ndarray) -> str:
         """
@@ -160,34 +151,50 @@ class OCREngine:
             # Sort lines by Y-coordinate (top to bottom)
             lines.sort(key=lambda l: l['y'])
             
-            # Smart baseline calculation: use minimum X position, but be smart about outliers
+            # Use the absolute minimum X as baseline
             x_positions = sorted([line['x'] for line in lines])
-            
-            # Use the minimum X as baseline (leftmost text is usually not indented)
             min_x = x_positions[0]
-            
-            # But if there's a huge gap suggesting the minimum is an outlier,
-            # use the second-smallest or median of lower half
-            if len(x_positions) > 3:
-                gap = x_positions[1] - x_positions[0]
-                next_gap = x_positions[2] - x_positions[1] if len(x_positions) > 2 else gap
-                # If gap to second is huge, use second as baseline
-                if gap > next_gap * 2:
-                    min_x = x_positions[1]
             
             print(f"[RapidOCR] Baseline X position: {min_x} (from positions: {x_positions[:5]}...)")
             
-            # Estimate character width from image if possible
-            # For small images, use smaller estimates; for larger, use typical monospace width
-            image_width = image.shape[1]
-            if image_width < 300:
-                char_width = 6  # Tighter estimate for small regions
-            elif image_width < 600:
-                char_width = 8
-            else:
-                char_width = 10
+            # Dynamically estimate character width based on actual indentations
+            # Find all positive X offsets relative to min_x
+            x_offsets = sorted([x - min_x for x in x_positions if x - min_x > 15])
             
-            indent_unit = 4  # spaces per indentation level
+            image_width = image.shape[1]
+            if x_offsets:
+                # Group offsets into clusters (e.g. 4-space, 8-space indents)
+                clusters = []
+                current_cluster = [x_offsets[0]]
+                for x in x_offsets[1:]:
+                    # If within 15 pixels, it's the same indentation level
+                    if x - current_cluster[-1] < 15:
+                        current_cluster.append(x)
+                    else:
+                        clusters.append(current_cluster)
+                        current_cluster = [x]
+                clusters.append(current_cluster)
+                
+                # To avoid single-character noise, find the first cluster with >1 item, 
+                # or fallback to the largest cluster if all have 1 item.
+                valid_clusters = [c for c in clusters if len(c) > 1]
+                if valid_clusters:
+                    first_indent_cluster = valid_clusters[0]
+                else:
+                    first_indent_cluster = max(clusters, key=len)
+                    
+                import numpy as np
+                first_indent = float(np.median(first_indent_cluster))
+                char_width = first_indent / 4.0
+                print(f"[RapidOCR] Dynamic char_width: {char_width:.2f} (based on 1st indent cluster median: {first_indent}px, size: {len(first_indent_cluster)})")
+            else:
+                if image_width < 300:
+                    char_width = 6.0
+                elif image_width < 600:
+                    char_width = 8.0
+                else:
+                    char_width = 10.0
+                print(f"[RapidOCR] Fallback char_width: {char_width}")
             
             # Group lines by Y-coordinate to handle text on same logical line
             # Adaptive grouping based on image height (estimate line height as ~5% of image)
@@ -235,18 +242,16 @@ class OCREngine:
                     # This is probably misdetected - treat as minimal indent
                     x_offset = 0
                 
-                # Convert pixel offset to spaces (rounded to nearest char_width)
-                spaces_count = round(x_offset / char_width)
+                # Convert pixel offset to spaces (rounded to nearest integer)
+                spaces_count = int(round(x_offset / char_width))
                 
-                # Normalize to indent units (4 spaces)
-                # Clamp to max 5 indent levels (20 spaces) - anything more is probably mis-detected
-                indent_level = max(0, min(5, round(spaces_count / indent_unit)))
-                actual_spaces = indent_level * indent_unit
+                # Clamp to max 30 spaces - anything more is probably mis-detected
+                spaces_count = max(0, min(30, spaces_count))
                 
                 # Build formatted line
-                indented_line = (' ' * actual_spaces) + merged_text
+                indented_line = (' ' * spaces_count) + merged_text
                 structured_lines.append(indented_line)
-                print(f"[RapidOCR] Line: x_offset={x_offset}px (min_x={min_x_in_group}) → {actual_spaces} spaces → '{indented_line[:60]}...'")
+                print(f"[RapidOCR] Line: x_offset={x_offset}px (min_x={min_x_in_group}) → {spaces_count} spaces → '{indented_line[:60]}...'")
             
             # Join with newlines to preserve structure
             structured_text = '\n'.join(structured_lines)
@@ -254,6 +259,10 @@ class OCREngine:
             print("---START---")
             print(structured_text)
             print("---END---")
+            
+            # Fix known RapidOCR hallucination where """ is misread as 1 11 or 11 11 11
+            import re
+            structured_text = re.sub(r'^( *)(?:1\s*11|11\s*11\s*11|11\s*11|1\s*1|""\s*11|11\s*"")\s*$', r'\1"""', structured_text, flags=re.MULTILINE)
             
             # Post-process to fix common Python syntax issues
             structured_text = self._fix_python_syntax(structured_text)
@@ -289,22 +298,9 @@ class OCREngine:
             line = lines[i]
             stripped = line.strip()
             
-            # NEVER treat imports as docstrings - they should never be wrapped in """
-            is_import_line = stripped.lower().startswith(('import ', 'from '))
-            is_code_line = any(x in stripped for x in ['def ', 'class ', '=', '(', ')', '[', ']', '{', '}', 'if ', 'for ', 'while ', 'return '])
-            
-            # Only wrap in docstring quotes if it looks like a docstring AND next line is code
-            if (not is_import_line and not is_code_line and 
-                len(stripped) > 5 and len(stripped) < 100 and
-                '"""' not in line and '"' not in line):
-                
-                # Check if next line is code or def/class
-                if i + 1 < len(lines):
-                    next_line = lines[i + 1].strip()
-                    next_is_code = any(x in next_line for x in ['def ', 'class ', '=', '(', ')', 'self.', 'return ', 'for ', 'if '])
-                    if next_is_code:
-                        indent = len(line) - len(line.lstrip())
-                        line = ' ' * indent + '"""' + stripped + '"""'
+            # We used to have artificial logic here to wrap lines in """ if they didn't look like code.
+            # This was removed because it caused false positives like """Returns:""".
+            # It's better to rely on RapidOCR's """ detection or the 1 11 regex fix.
             
             # Fix common OCR artifacts
             line = re.sub(r'\.\"\"\"', '"""', line)
@@ -333,6 +329,13 @@ class OCREngine:
                 line = re.sub(r'self\.\s+f(?=ind)', 'self._f', line)  
                 # Fix standalone method references
                 line = re.sub(r'\b_find\s+screenshot', '_find_screenshot', line)
+            
+            # Fix XML/HTML tag hallucinations
+            # OCR often sees `<` as `c` and `</` as `cr` or `k/`
+            line = re.sub(r'^(\s*)c([A-Z][A-Za-z]+>)', r'\1<\2', line)
+            line = re.sub(r'^(\s*)cr([A-Z][A-Za-z]+>)', r'\1</\2', line)
+            line = re.sub(r'k/([A-Z][A-Za-z]+>)', r'</\1', line)
+            line = re.sub(r'iten/([A-Z][A-Za-z]+>)', r'item</\1', line)
             
             # Fix return type hints: None : -> -> None:
             line = re.sub(r'\)\s+None\s*:', r') -> None:', line)
@@ -424,14 +427,14 @@ class OCREngine:
     def extract_text(
         self,
         image_path: str,
-        region: Tuple[int, int, int, int]
+        region: Optional[Tuple[int, int, int, int]] = None
     ) -> str:
         """
         Extract text from image region.
         
         Args:
             image_path: Path to image file
-            region: (x, y, width, height) tuple for crop
+            region: Optional (x, y, width, height) tuple for crop. If None, uses full image.
             
         Returns:
             Extracted and cleaned text
@@ -445,10 +448,14 @@ class OCREngine:
         
         print(f"[OCR] Image shape: {image.shape}")
         
-        # Crop to region
-        print(f"[OCR] Cropping to region: {region}")
-        cropped = self._crop_region(image, region)
-        print(f"[OCR] Cropped shape: {cropped.shape}")
+        # Crop to region if specified
+        if region is not None:
+            print(f"[OCR] Cropping to region: {region}")
+            cropped = self._crop_region(image, region)
+            print(f"[OCR] Cropped shape: {cropped.shape}")
+        else:
+            cropped = image
+            print("[OCR] Using full image (no crop)")
         
         # Preprocess image
         print("[OCR] Preprocessing image...")

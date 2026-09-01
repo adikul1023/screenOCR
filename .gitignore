@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+build/
+dist/
+*.egg-info/
+.DS_Store
+*.AppImage
+test_*.png
+binary_for_*.png
+screencapture.png

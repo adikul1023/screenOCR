@@ -26,7 +26,7 @@ class PortalScreenshot:
         Returns:
             Path to screenshot tool or None
         """
-        tools = ['gnome-screenshot', 'spectacle', 'flameshot', 'scrot']
+        tools = ['grim', 'gnome-screenshot', 'spectacle', 'flameshot', 'scrot']
         for tool in tools:
             try:
                 result = subprocess.run(
@@ -92,6 +92,12 @@ class PortalScreenshot:
             elif self.screenshot_tool == 'scrot':
                 result = subprocess.run(
                     ['scrot', temp_path],
+                    capture_output=True,
+                    timeout=5
+                )
+            elif self.screenshot_tool == 'grim':
+                result = subprocess.run(
+                    ['grim', temp_path],
                     capture_output=True,
                     timeout=5
                 )

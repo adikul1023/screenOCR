@@ -66,16 +66,26 @@ def cli_main() -> int:
     """
     import hotkey_daemon
     
+    def print_usage() -> None:
+        """Print command line usage."""
+        import sys
+        import os
+        
+        cmd = os.path.basename(sys.argv[0])
+        
+        print(f"\nScreenOCR - Hotkey-triggered OCR utility\n")
+        print(f"Usage:")
+        print(f"  {cmd} trigger          - Manually trigger OCR region selection")
+        print(f"  {cmd} daemon start     - Start the hotkey listener daemon")
+        print(f"  {cmd} daemon stop      - Stop the running daemon")
+        print(f"  {cmd} daemon status    - Check daemon status\n")
+        print(f"Hotkey: Super+Shift+T (customizable)\n")
+        print(f"Examples:")
+        print(f"  {cmd} daemon start 'ctrl+shift+c'")
+        print(f"  {cmd} trigger\n")
+    
     if len(sys.argv) < 2 or sys.argv[1] in ('--help', '-h', 'help'):
-        print("ScreenOCR - Hotkey-triggered OCR utility")
-        print("\nUsage:")
-        print("  screenocr trigger          - Manually trigger OCR region selection")
-        print("  screenocr daemon start     - Start the hotkey listener daemon")
-        print("  screenocr daemon stop      - Stop the running daemon")
-        print("  screenocr daemon status    - Check daemon status")
-        print("\nHotkey: Super+Shift+T (customizable)")
-        print("\nExamples:")
-        print("  screenocr daemon start 'ctrl+shift+c'")
+        print_usage()
         return 0
     
     command = sys.argv[1]
@@ -391,20 +401,107 @@ class OcrApplication:
         """
         self._show_error(f"OCR processing failed: {error}")
     
+    def _trigger_wayland_native(self) -> None:
+        """Use native desktop environment tools for region capture."""
+        import subprocess
+        import tempfile
+        import os
+        import shutil
+        
+        try:
+            # Create temp file for screenshot
+            fd, temp_path = tempfile.mkstemp(suffix='.png')
+            os.close(fd)
+            
+            captured = False
+            
+            # Detect Desktop Environment to avoid running incompatible tools
+            current_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').upper()
+            
+            # Check for KDE Spectacle
+            if 'KDE' in current_desktop and shutil.which('spectacle'):
+                # -r (region), -b (background), -n (no notify), -o (output)
+                if subprocess.run(['spectacle', '-r', '-b', '-n', '-o', temp_path]).returncode == 0:
+                    captured = True
+                    
+            # Check for GNOME Screenshot
+            elif 'GNOME' in current_desktop and shutil.which('gnome-screenshot'):
+                # -a (area), -f (file)
+                if subprocess.run(['gnome-screenshot', '-a', '-f', temp_path]).returncode == 0:
+                    captured = True
+                    
+            # Check for slurp/grim (wlroots / Hyprland / Sway)
+            elif shutil.which('slurp') and shutil.which('grim'):
+                slurp_process = subprocess.run(['slurp'], capture_output=True, text=True)
+                if slurp_process.returncode == 0:
+                    selection = slurp_process.stdout.strip()
+                    if subprocess.run(['grim', '-g', selection, temp_path]).returncode == 0:
+                        captured = True
+            
+            # Fallbacks if the specific DE tool failed or wasn't found
+            if not captured and shutil.which('flameshot'):
+                with open(temp_path, 'wb') as f:
+                    if subprocess.run(['flameshot', 'gui', '-r'], stdout=f).returncode == 0:
+                        captured = True
+            
+            if not captured and shutil.which('scrot'):
+                if subprocess.run(['scrot', '-s', temp_path]).returncode == 0:
+                    captured = True
+                    
+            if not captured or not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                print("Screenshot cancelled or no compatible tool found.")
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                QTimer.singleShot(100, QApplication.quit)
+                return
+                
+            print(f"Captured screenshot to {temp_path}")
+            print("Processing OCR...")
+            
+            # Process OCR directly (synchronous)
+            text = self.ocr_engine.extract_text(temp_path, None)
+            
+            if not text:
+                print("No text could be extracted.")
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                return
+                
+            self._copy_to_clipboard(text)
+            
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+            print("\n=== OCR Process Complete ===")
+            print(f"Extracted {len(text)} characters")
+            print("Text copied to clipboard!")
+            
+            # Allow time for clipboard to sync before quitting
+            QTimer.singleShot(500, QApplication.quit)
+            
+        except Exception as e:
+            self._show_error(f"Native capture failed: {str(e)}")
+
     def trigger_ocr(self) -> None:
         """
         Trigger OCR workflow on hotkey press.
         
         This is called when user presses the global shortcut.
         """
-        try:
-            # Show selection overlay
-            self.overlay = SelectionOverlay()
-            self.overlay.region_selected.connect(self._on_overlay_region_selected)
-            self.overlay.cancelled.connect(self._on_overlay_cancelled)
-            self.overlay.showFullScreen()
-        except Exception as e:
-            self._show_error(f"Failed to show selection overlay: {str(e)}")
+        import os
+        # Check if running on Wayland
+        wayland_display = os.environ.get('WAYLAND_DISPLAY')
+        if wayland_display:
+            self._trigger_wayland_native()
+        else:
+            try:
+                # Show selection overlay
+                self.overlay = SelectionOverlay()
+                self.overlay.region_selected.connect(self._on_overlay_region_selected)
+                self.overlay.cancelled.connect(self._on_overlay_cancelled)
+                self.overlay.showFullScreen()
+            except Exception as e:
+                self._show_error(f"Failed to show selection overlay: {str(e)}")
     
     def _on_overlay_cancelled(self) -> None:
         """Handle overlay cancellation."""

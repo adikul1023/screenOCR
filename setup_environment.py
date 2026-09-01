@@ -53,7 +53,12 @@ class DependencyChecker:
     def check_python_package(self, package: str) -> bool:
         """Check if a Python package is installed."""
         try:
-            __import__(package.replace('-', '_'))
+            if package == 'opencv-python':
+                import cv2
+            elif package == 'pillow':
+                import PIL
+            else:
+                __import__(package.replace('-', '_'))
             return True
         except ImportError:
             return False
