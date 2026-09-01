@@ -14,34 +14,28 @@ A fast, lightweight OCR utility for Linux with global hotkey support. Press **Su
 
 ## Quick Install
 
-### Option 1: AppImage (Easiest - Works Everywhere)
+### Option 1: 1-Click Installer (Recommended)
+
+Installs the app, creates a secure local virtual environment, and sets up a background daemon for you automatically.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/adikul1023/screenOCR/master/install.sh | bash
+```
+
+### Option 2: AppImage (Portable)
 
 ```bash
 # Download the latest AppImage
-wget https://github.com/adikul1023/screenOCR/releases/download/latest/ScreenOCR-0.2.0-x86_64.AppImage
+wget https://github.com/adikul1023/screenOCR/releases/download/v0.2.3/ScreenOCR-0.2.1-x86_64.AppImage
 
 # Make executable
-chmod +x ScreenOCR-0.2.0-x86_64.AppImage
+chmod +x ScreenOCR-0.2.1-x86_64.AppImage
 
 # Start the daemon
-./ScreenOCR-0.2.0-x86_64.AppImage daemon start
+./ScreenOCR-0.2.1-x86_64.AppImage daemon start
 
 # Or with custom hotkey
-./ScreenOCR-0.2.0-x86_64.AppImage daemon start 'alt+shift+o'
-```
-
-### Option 2: Snap (Ubuntu & Fedora)
-
-```bash
-snap install screenocr
-screenocr daemon start
-```
-
-### Option 3: Flatpak (All Linux Distros)
-
-```bash
-flatpak install flathub com.github.adikul1023.screenocr
-flatpak run com.github.adikul1023.screenocr daemon start
+./ScreenOCR-0.2.1-x86_64.AppImage daemon start 'alt+shift+o'
 ```
 
 ## Requirements
@@ -49,43 +43,8 @@ flatpak run com.github.adikul1023.screenocr daemon start
 - Linux with Wayland support
 - One of: `spectacle`, `gnome-screenshot`, `flameshot`, `scrot`
 - `wl-copy` (for clipboard, optional - falls back to Qt)
-- Root access or udev rules (for global hotkey daemon)
+- `python3` and `python3-venv` (for the 1-click installer)
 
-## Installation (From Source)
-
-## Installation (From Source)
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/adikul1023/screenOCR.git
-cd screenOCR
-```
-
-### 2. Install Dependencies (Optional)
-
-```bash
-# Debian/Ubuntu
-sudo apt install spectacle wl-clipboard python3-venv
-
-# Fedora
-sudo dnf install spectacle wl-clipboard python3-venv
-
-# Arch
-sudo pacman -S spectacle wl-clipboard
-```
-
-### 3. Install Python Package
-
-```bash
-pip install -e .
-```
-
-That's it! Now run:
-
-```bash
-screenocr daemon start
-```
 
 ## Usage
 
@@ -182,7 +141,6 @@ sudo apt install wl-clipboard
 
 See [PACKAGING.md](PACKAGING.md) for details on:
 - **AppImage** - Single file, works everywhere
-- **Snap** - Ubuntu/Fedora snapcraft
 - **Flatpak** - Modern Linux standard
 - **Traditional packages** - .deb, .rpm, AUR
 
