@@ -141,7 +141,6 @@ sudo apt install wl-clipboard
 
 See [PACKAGING.md](PACKAGING.md) for details on:
 - **AppImage** - Single file, works everywhere
-- **Flatpak** - Modern Linux standard
 - **Traditional packages** - .deb, .rpm, AUR
 
 ## Architecture
@@ -178,7 +177,6 @@ python main.py daemon status
 See [PACKAGING.md](PACKAGING.md) for:
 - Building AppImage
 - Building Snap
-- Building Flatpak
 - GitHub Actions CI/CD setup
 
 Quick build:

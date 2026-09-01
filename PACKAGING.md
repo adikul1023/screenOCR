@@ -55,28 +55,21 @@ screenocr daemon start
 
 ---
 
-## 📲 Flatpak Package
 
 **Modern, portable package format:**
 
 ```bash
 # Build locally
-flatpak-builder build-dir com.github.adikul1023.screenocr.yml
 
-# Or submit to Flathub
-# (See https://flathub.org/docs/for-app-authors)
 ```
 
 **Installation:**
 ```bash
-flatpak install com.github.adikul1023.screenocr
-flatpak run com.github.adikul1023.screenocr daemon start
 ```
 
 **Advantages:**
 - Works on all Linux distros
 - Sandboxed for security
-- Central app store (Flathub)
 - Easy versioning
 
 ---
@@ -110,7 +103,6 @@ screenocr daemon start
 | Format | Distros | Setup | Auto-Update | Notes |
 |--------|---------|-------|-------------|-------|
 | **AppImage** | All | Single file | ❌ (Manual) | **Most portable** |
-| **Flatpak** | All | `flatpak install` | ✅ | Modern standard |
 | **.deb** | Debian/Ubuntu | `apt-get install` | ✅ (via repo) | Traditional |
 | **.rpm** | Fedora/RHEL | `dnf/yum install` | ✅ (via repo) | Traditional |
 | **AUR** | Arch/Manjaro | `yay -S screenocr` | ✅ | Arch community |
@@ -137,11 +129,7 @@ sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 # or
 ```
 
-### For Flatpak:
 ```bash
-apt install flatpak flatpak-builder
-# Add Flathub repo
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 ```
 
 ### For traditional packages:
@@ -176,9 +164,6 @@ bash build-appimage.sh
 # → ScreenOCR-0.2.1-x86_64.AppImage
 
 
-# Build Flatpak
-flatpak-builder build-dir com.github.adikul1023.screenocr.yml --force-clean
-# → screenocr-0.2.1-x86_64.flatpak
 ```
 
 ### 3. **Create GitHub Release**
@@ -186,15 +171,11 @@ flatpak-builder build-dir com.github.adikul1023.screenocr.yml --force-clean
 # Draft release on GitHub
 # Upload:
 # - ScreenOCR-0.2.1-x86_64.AppImage
-# - screenocr-0.2.1-x86_64.flatpak
 ```
 
 ### 4. **Upload to Stores**
 ```bash
 
-# Flathub (to repo)
-git push flathub branch-0.2.1
-# (submit PR to https://github.com/flathub/com.github.adikul1023.screenocr)
 
 # AUR (if maintaining)
 cd screenocr-aur
@@ -210,12 +191,10 @@ git push aur master
 **For maximum reach:**
 
 1. **Primary:** AppImage (works everywhere)
-3. **Tertiary:** Flatpak (modern Linux users)
 4. **Community:** AUR (Arch users)
 
 **Upload to:**
 - GitHub Releases (all formats)
-- Flathub (Flatpak)
 - AUR (if community maintains)
 
 ---
@@ -233,9 +212,6 @@ bash build-appimage.sh
 mv ScreenOCR-*.AppImage "ScreenOCR-${VERSION}-x86_64.AppImage"
 
 
-echo "Building Flatpak..."
-flatpak-builder build-dir com.github.adikul1023.screenocr.yml --force-clean
-# (Flatpak created in build-dir)
 
 echo "✓ Build complete!"
 
@@ -252,8 +228,6 @@ echo "Next: Upload to GitHub Releases"
 **Q: Can I automatically update AppImages?**  
 A: Use `AppImageUpdate` libraries or recommend users use a package manager instead.
 
-**Q: How do I submit to Flathub?**  
-A: See https://github.com/flathub/flathub/wiki/Submission-Guidelines
 
 **Q: What about Windows/macOS?**  
 A: Not supported currently (Wayland-specific). Could use pyinstaller for Windows version.
@@ -266,8 +240,6 @@ A: ~200-300MB depending on bundled dependencies.
 ## 🔗 Useful Links
 
 - **AppImage:** https://appimage.org/
-- **Flatpak:** https://docs.flatpak.org/
-- **Flathub:** https://flathub.org/
 - **GitHub Releases:** https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
 - **AUR:** https://wiki.archlinux.org/title/AUR
 
